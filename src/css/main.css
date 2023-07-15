@@ -81,6 +81,19 @@
   font-weight: 500;
 }
 
+#back-btn {
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+#back-btn:hover {
+  cursor: pointer;
+}
+
 #submit_btn {
   font-size: 1rem;
   padding: 4px;

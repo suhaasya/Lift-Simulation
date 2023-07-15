@@ -2,6 +2,7 @@ const submitBtn = document.getElementById("submit_btn");
 const home_page = document.getElementById("home_page");
 const lift_page = document.getElementById("lift_page");
 const floors_container = document.getElementById("floors_container");
+const backBtn = document.getElementById("back-btn");
 
 // inputs
 let noOfFloors;
@@ -9,6 +10,7 @@ let noOfLifts;
 let liftsPositions = {};
 let maxLifts = 6;
 let screenSize;
+const liftQueue = [];
 
 const upBtnSVG = `<svg width="16" height="16" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="m7.5 3 7.5 8H0l7.5-8Z" fill="#000"/></svg>`;
 
@@ -57,6 +59,11 @@ window.addEventListener("resize", function (event) {
 submitBtn.addEventListener("click", (e) => {
   e.preventDefault();
   generateUi();
+});
+
+backBtn.addEventListener("click", (e) => {
+  console.log("suhas");
+  this.location.reload();
 });
 
 const generateUi = () => {
@@ -133,11 +140,26 @@ const createLift = (num) => {
   return liftHTML;
 };
 
+let isMoving = false;
+
 const moveLift = async (floorNo) => {
+  liftQueue.push(floorNo);
+  liftsPositions = arrangeLiftsQueue(noOfLifts, liftQueue);
+
+  console.log(liftsPositions);
+  // if (!isMoving) {
+  processLiftOperation(floorNo);
+  // }
+};
+
+const processLiftOperation = (floorNo) => {
+  isMoving = true;
   const { nearestLift, nearestDistance } = getNearestAvailableLift(floorNo);
 
   if (nearestLift && floorNo >= 0) {
-    openDoors(nearestLift); // Open the doors
+    if (floorNo === liftsPositions[nearestLift].position) {
+      openDoors(nearestLift); // Open the doors
+    }
     liftsPositions[nearestLift].free = false;
     const lift = document.getElementById(`lift-${nearestLift}`);
     const height = floorNo * 100;
@@ -150,21 +172,17 @@ const moveLift = async (floorNo) => {
 
     // console.log(obj);
     // console.log(liftsPositions[nearestLift].position);
+    if (liftsPositions[nearestLift].position !== floorNo) {
+      lift.style.transitionDuration = `${nearestDistance * 2}s`;
+      lift.style.transform = `translateY(${-height}px)`;
+      liftsPositions[nearestLift].position = floorNo;
 
-    setTimeout(() => {
-      if (liftsPositions[nearestLift].position !== floorNo) {
-        lift.style.transitionDuration = `${nearestDistance * 2}s`;
-        lift.style.transform = `translateY(${-height}px)`;
-        liftsPositions[nearestLift].position = floorNo;
-
-        setTimeout(() => {
-          openDoors(nearestLift);
-          liftsPositions[nearestLift].free = true;
-        }, nearestDistance * 1000 * 2);
-      } else {
-        liftsPositions[nearestLift].free = true;
-      }
-    }, 5000);
+      setTimeout(() => {
+        openDoors(nearestLift);
+      }, nearestDistance * 1000 * 2);
+    } else {
+      liftsPositions[nearestLift].free = true;
+    }
   }
 };
 
@@ -193,15 +211,39 @@ const getNearestAvailableLift = (currentFloor) => {
   return { nearestLift, nearestDistance };
 };
 
-function openDoors(lift) {
+const openDoors = (lift) => {
   const leftDoor = document.querySelector(`.lift-left-door-${lift}`);
   const rightDoor = document.querySelector(`.lift-right-door-${lift}`);
 
   leftDoor.classList.add("open-left");
   rightDoor.classList.add("open-right");
 
+  const doorOpenTime = 2500; // Duration for the doors to remain open (in milliseconds)
+
   setTimeout(function () {
     leftDoor.classList.remove("open-left");
     rightDoor.classList.remove("open-right");
-  }, 2500);
-}
+
+    // Perform the operations after the doors have finished opening fully
+    setTimeout(function () {
+      liftsPositions[lift].free = true;
+      isMoving = false;
+      processLiftOperation(liftsPositions[lift].queue.shift());
+    }, doorOpenTime);
+  }, doorOpenTime);
+};
+
+const arrangeLiftsQueue = (n, m) => {
+  const ans = {};
+
+  for (let i = 1; i <= n; i++) {
+    ans[i] = { ...liftsPositions[i], queue: [] };
+  }
+
+  for (let i = 0; i < m.length; i++) {
+    const liftNumber = (i % n) + 1;
+    ans[liftNumber].queue.push(m[i]);
+  }
+
+  return ans;
+};
