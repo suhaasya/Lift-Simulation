@@ -10,7 +10,7 @@ let noOfLifts;
 let liftsPositions = {};
 let maxLifts = 6;
 let screenSize;
-const liftQueue = [];
+let liftQueue = [];
 
 const upBtnSVG = `<svg width="16" height="16" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="m7.5 3 7.5 8H0l7.5-8Z" fill="#000"/></svg>`;
 
@@ -145,11 +145,8 @@ let isMoving = false;
 const moveLift = async (floorNo) => {
   liftQueue.push(floorNo);
   liftsPositions = arrangeLiftsQueue(noOfLifts, liftQueue);
-
-  console.log(liftsPositions);
-  // if (!isMoving) {
   processLiftOperation(floorNo);
-  // }
+  console.log(liftQueue);
 };
 
 const processLiftOperation = (floorNo) => {
@@ -228,7 +225,12 @@ const openDoors = (lift) => {
     setTimeout(function () {
       liftsPositions[lift].free = true;
       isMoving = false;
-      processLiftOperation(liftsPositions[lift].queue.shift());
+      const nextFloor = liftsPositions[lift].queue.shift();
+      if (nextFloor) {
+        processLiftOperation(nextFloor);
+      } else {
+        liftQueue = [];
+      }
     }, doorOpenTime);
   }, doorOpenTime);
 };
@@ -240,7 +242,7 @@ const arrangeLiftsQueue = (n, m) => {
     ans[i] = { ...liftsPositions[i], queue: [] };
   }
 
-  for (let i = 0; i < m.length; i++) {
+  for (let i = noOfLifts; i < m.length; i++) {
     const liftNumber = (i % n) + 1;
     ans[liftNumber].queue.push(m[i]);
   }
