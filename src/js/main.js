@@ -7,7 +7,7 @@ const backBtn = document.getElementById("back-btn");
 // inputs
 let noOfFloors;
 let noOfLifts;
-let liftsPositions = {};
+let liftsPositions = new Map();
 let maxLifts = 6;
 let screenSize;
 let liftQueue = [];
@@ -62,8 +62,7 @@ submitBtn.addEventListener("click", (e) => {
 });
 
 backBtn.addEventListener("click", (e) => {
-  console.log("suhas");
-  this.location.reload();
+  location.reload();
 });
 
 const generateUi = () => {
@@ -85,7 +84,7 @@ const generateUi = () => {
     lift_page.classList.remove("hidden");
     floors_container.innerHTML = createFloor(noOfFloors);
     for (let i = 0; i < noOfLifts; i++) {
-      liftsPositions[i + 1] = { position: 0, free: true };
+      liftsPositions.set(i + 1, { position: 0, free: true });
     }
   }
 };
@@ -132,74 +131,92 @@ const createLift = (num) => {
     liftHTML =
       liftHTML +
       `<div class="lift" id="lift-${i + 1}">
-    <div class="lift-door left-door lift-left-door-${i + 1}"></div>
-    <div class="lift-door right-door lift-right-door-${i + 1}"></div>
+    <div id="lift-left-door-${i + 1}" class="lift-door left-door "></div>
+    <div id="lift-right-door-${i + 1}" class="lift-door right-door "></div>
   </div>`;
   }
 
   return liftHTML;
 };
 
-let isMoving = false;
-
 const moveLift = async (floorNo) => {
+  console.log(`${liftsPositions}`);
   liftQueue.push(floorNo);
-  liftsPositions = arrangeLiftsQueue(noOfLifts, liftQueue);
-  processLiftOperation(floorNo);
-  console.log(liftQueue);
+  processLiftOperation();
 };
 
-const processLiftOperation = (floorNo) => {
-  isMoving = true;
-  const { nearestLift, nearestDistance } = getNearestAvailableLift(floorNo);
-
-  if (nearestLift && floorNo >= 0) {
-    if (floorNo === liftsPositions[nearestLift].position) {
-      openDoors(nearestLift); // Open the doors
+const isLiftAvailable = (map) => {
+  for (const value of map.values()) {
+    if (value.free === true) {
+      return true;
     }
-    liftsPositions[nearestLift].free = false;
-    const lift = document.getElementById(`lift-${nearestLift}`);
-    const height = floorNo * 100;
+  }
+  return false;
+};
 
-    // const obj = {
-    //   nearestLift: nearestLift,
-    //   nearestDistance: nearestDistance,
-    //   floorNo: floorNo,
-    // };
+const processLiftOperation = async () => {
+  const isLiftFree = isLiftAvailable(liftsPositions);
+  console.log(isLiftFree);
 
-    // console.log(obj);
-    // console.log(liftsPositions[nearestLift].position);
-    if (liftsPositions[nearestLift].position !== floorNo) {
-      lift.style.transitionDuration = `${nearestDistance * 2}s`;
+  if (liftQueue.length > 0 && isLiftFree) {
+    const floorNo = liftQueue.shift();
+    const { nearestLift, nearestDistance } = await getNearestAvailableLift(
+      floorNo
+    );
+
+    console.log({ nearestDistance, nearestLift });
+
+    if (nearestLift !== null) {
+      const liftObj = liftsPositions.get(nearestLift);
+      liftsPositions.set(nearestLift, { ...liftObj, free: false });
+
+      const lift = document.getElementById(`lift-${nearestLift}`);
+      const height = floorNo * 100;
+      const transitionDuration = nearestDistance * 2;
+
+      lift.style.transitionDuration = `${transitionDuration}s`;
       lift.style.transform = `translateY(${-height}px)`;
-      liftsPositions[nearestLift].position = floorNo;
 
+      const newliftObj = liftsPositions.get(nearestLift);
+      liftsPositions.set(nearestLift, { ...newliftObj, position: floorNo });
+
+      console.log({ liftsPositions });
       setTimeout(() => {
         openDoors(nearestLift);
-      }, nearestDistance * 1000 * 2);
-    } else {
-      liftsPositions[nearestLift].free = true;
+      }, transitionDuration * 1000);
     }
+
+    processLiftOperation();
   }
 };
 
 const getNearestAvailableLift = (currentFloor) => {
   let nearestLift = null;
   let nearestDistance = noOfFloors + 1;
+  const lifts = [];
 
-  for (let lift of Object.keys(liftsPositions)) {
-    if (liftsPositions[+lift].free) {
-      const liftFloor = liftsPositions[+lift].position;
+  liftsPositions.forEach((value, key) => {
+    lifts.push(key);
+  });
+
+  // console.log(lifts);
+
+  for (let i = 0; i < lifts.length; i++) {
+    const liftObj = liftsPositions.get(lifts[i]);
+    console.log(liftObj);
+    if (liftObj.free) {
+      console.log("this is executing");
+      const liftFloor = liftObj.position;
 
       if (liftFloor === currentFloor) {
-        nearestLift = +lift;
-        break; // Exit the loop since a lift on the current floor is found
+        nearestLift = lifts[i];
+        break;
       }
 
       const distance = Math.abs(liftFloor - currentFloor);
 
       if (distance < nearestDistance) {
-        nearestLift = +lift;
+        nearestLift = lifts[i];
         nearestDistance = distance;
       }
     }
@@ -209,43 +226,23 @@ const getNearestAvailableLift = (currentFloor) => {
 };
 
 const openDoors = (lift) => {
-  const leftDoor = document.querySelector(`.lift-left-door-${lift}`);
-  const rightDoor = document.querySelector(`.lift-right-door-${lift}`);
+  console.log(lift);
+  const leftDoor = document.getElementById(`lift-left-door-${lift}`);
+  const rightDoor = document.getElementById(`lift-right-door-${lift}`);
 
   leftDoor.classList.add("open-left");
   rightDoor.classList.add("open-right");
 
-  const doorOpenTime = 2500; // Duration for the doors to remain open (in milliseconds)
+  const doorOpenTime = 2500;
 
   setTimeout(function () {
     leftDoor.classList.remove("open-left");
     rightDoor.classList.remove("open-right");
 
-    // Perform the operations after the doors have finished opening fully
     setTimeout(function () {
-      liftsPositions[lift].free = true;
-      isMoving = false;
-      const nextFloor = liftsPositions[lift].queue.shift();
-      if (nextFloor) {
-        processLiftOperation(nextFloor);
-      } else {
-        liftQueue = [];
-      }
+      const liftObj = liftsPositions.get(lift);
+      liftsPositions.set(lift, { ...liftObj, free: true });
+      processLiftOperation();
     }, doorOpenTime);
   }, doorOpenTime);
-};
-
-const arrangeLiftsQueue = (n, m) => {
-  const ans = {};
-
-  for (let i = 1; i <= n; i++) {
-    ans[i] = { ...liftsPositions[i], queue: [] };
-  }
-
-  for (let i = noOfLifts; i < m.length; i++) {
-    const liftNumber = (i % n) + 1;
-    ans[liftNumber].queue.push(m[i]);
-  }
-
-  return ans;
 };
