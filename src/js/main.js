@@ -210,6 +210,7 @@ const getNearestAvailableLift = (currentFloor) => {
 
       if (liftFloor === currentFloor) {
         nearestLift = lifts[i];
+        nearestDistance = 0;
         break;
       }
 

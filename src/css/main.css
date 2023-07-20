@@ -143,6 +143,20 @@
   border-radius: 50%;
 }
 
+.up_btn:active {
+  background-color: gray;
+}
+.down_btn:active {
+  background-color: gray;
+}
+.up_btn:hover {
+  cursor: pointer;
+}
+
+.down_btn:hover {
+  cursor: pointer;
+}
+
 .hidden {
   display: none;
 }
