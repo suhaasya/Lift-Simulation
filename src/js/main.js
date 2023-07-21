@@ -19,7 +19,7 @@ const downBtnSVG = `<svg width="16" height="16" viewBox="0 0 15 15" fill="none" 
 window.onload = () => {
   // testing in browser
   screenSize = window.innerWidth;
-  console.log(screenSize);
+
   if (screenSize < 350) {
     maxLifts = 1;
   }
@@ -140,7 +140,6 @@ const createLift = (num) => {
 };
 
 const moveLift = async (floorNo) => {
-  console.log(`${liftsPositions}`);
   liftQueue.push(floorNo);
   processLiftOperation();
 };
@@ -156,15 +155,12 @@ const isLiftAvailable = (map) => {
 
 const processLiftOperation = async () => {
   const isLiftFree = isLiftAvailable(liftsPositions);
-  console.log(isLiftFree);
 
   if (liftQueue.length > 0 && isLiftFree) {
     const floorNo = liftQueue.shift();
     const { nearestLift, nearestDistance } = await getNearestAvailableLift(
       floorNo
     );
-
-    console.log({ nearestDistance, nearestLift });
 
     if (nearestLift !== null) {
       const liftObj = liftsPositions.get(nearestLift);
@@ -180,7 +176,6 @@ const processLiftOperation = async () => {
       const newliftObj = liftsPositions.get(nearestLift);
       liftsPositions.set(nearestLift, { ...newliftObj, position: floorNo });
 
-      console.log({ liftsPositions });
       setTimeout(() => {
         openDoors(nearestLift);
       }, transitionDuration * 1000);
@@ -199,13 +194,10 @@ const getNearestAvailableLift = (currentFloor) => {
     lifts.push(key);
   });
 
-  // console.log(lifts);
-
   for (let i = 0; i < lifts.length; i++) {
     const liftObj = liftsPositions.get(lifts[i]);
-    console.log(liftObj);
+
     if (liftObj.free) {
-      console.log("this is executing");
       const liftFloor = liftObj.position;
 
       if (liftFloor === currentFloor) {
@@ -227,7 +219,6 @@ const getNearestAvailableLift = (currentFloor) => {
 };
 
 const openDoors = (lift) => {
-  console.log(lift);
   const leftDoor = document.getElementById(`lift-left-door-${lift}`);
   const rightDoor = document.getElementById(`lift-right-door-${lift}`);
 
